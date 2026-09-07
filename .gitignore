@@ -1,0 +1,12 @@
+# Runtime artifacts — regenerated on each run, not source.
+last-run.log
+watchers/
+results/
+.DS_Store
+
+# Build artifact — compile from dwcard.swift (see README).
+dwcard
+
+
+# Personal config (per-user).
+config.zsh

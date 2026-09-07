@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeployWatcher — result preview</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --text: #1c2024;
+    --muted: #6b7280;
+    --line: #e6e8eb;
+    --ok: #1f9d55;
+    --ok-soft: #e7f6ee;
+    --bad: #d64545;
+    --bad-soft: #fcecec;
+    --accent: #4f46e5;
+    --shadow: 0 12px 40px rgba(0,0,0,.14);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181d; --card: #21242b; --text: #e7e9ee; --muted: #9aa1ad;
+      --line: #31353d; --ok: #46c17f; --ok-soft: #1b2f25; --bad: #f0716f;
+      --bad-soft: #33211f; --accent: #8b85f5; --shadow: 0 12px 44px rgba(0,0,0,.5);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; padding: 32px;
+  }
+  .toggle { display: flex; gap: 8px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 999px; padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .toggle button { border: 0; background: transparent; color: var(--muted); font: inherit;
+    font-size: 13px; font-weight: 600; padding: 7px 16px; border-radius: 999px; cursor: pointer; }
+  .toggle button.active { background: var(--text); color: var(--card); }
+
+  .card {
+    width: 380px; max-width: 100%; background: var(--card); border-radius: 16px;
+    box-shadow: var(--shadow); overflow: hidden; border: 1px solid var(--line);
+  }
+  .banner {
+    display: flex; align-items: center; gap: 12px; padding: 20px 22px;
+    background: var(--ok-soft); border-bottom: 1px solid var(--line);
+  }
+  .banner .icon {
+    width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 22px; background: var(--ok); color: #fff; flex: none;
+  }
+  .banner .headline { font-size: 12px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--ok); }
+  .banner .title { font-size: 18px; font-weight: 700; margin-top: 1px; }
+
+  .card.fail .banner { background: var(--bad-soft); }
+  .card.fail .banner .icon { background: var(--bad); }
+  .card.fail .banner .headline { color: var(--bad); }
+
+  .meta { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px;
+    padding: 18px 22px; font-size: 14px; border-bottom: 1px solid var(--line); }
+  .meta dt { color: var(--muted); }
+  .meta dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .meta .branch { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: 600; }
+
+  .jobs { padding: 14px 22px 6px; }
+  .jobs h3 { font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 8px; }
+  .job { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 14px;
+    border-bottom: 1px solid var(--line); }
+  .job:last-child { border-bottom: 0; }
+  .job .dot { width: 18px; text-align: center; }
+  .job .name { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; }
+  .job.ok .dot { color: var(--ok); } .job.bad .dot { color: var(--bad); }
+
+  .actions { display: flex; gap: 10px; padding: 16px 22px 20px; }
+  .btn { flex: 1; text-align: center; text-decoration: none; font: inherit; font-weight: 600;
+    font-size: 14px; padding: 10px 14px; border-radius: 10px; cursor: pointer; border: 1px solid var(--line); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
+  .btn.secondary { background: transparent; color: var(--text); }
+
+  .foot { text-align: center; font-size: 12px; color: var(--muted); padding-bottom: 4px; }
+  .hint { font-size: 12px; color: var(--muted); max-width: 380px; text-align: center; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="toggle">
+    <button id="btn-ok" class="active" onclick="setState('ok')">✅ Success</button>
+    <button id="btn-fail" onclick="setState('fail')">❌ Failure</button>
+  </div>
+
+  <div class="card" id="card">
+    <div class="banner">
+      <div class="icon" id="icon">✓</div>
+      <div>
+        <div class="headline" id="headline">Deploy finished</div>
+        <div class="title">Staging deploy</div>
+      </div>
+    </div>
+
+    <dl class="meta">
+      <dt>Run</dt>       <dd>#591</dd>
+      <dt>Branch</dt>    <dd class="branch">staging</dd>
+      <dt>Started</dt>   <dd>Jul 30, 14:00</dd>
+      <dt>Finished</dt>  <dd id="finished">Jul 30, 14:23 &nbsp;·&nbsp; 23m</dd>
+    </dl>
+
+    <div class="jobs">
+      <h3 id="jobs-title">Jobs</h3>
+      <div id="job-list"></div>
+    </div>
+
+    <div class="actions">
+      <a class="btn primary" href="#">Open run ↗</a>
+      <button class="btn secondary">Dismiss</button>
+    </div>
+    <div class="foot">DeployWatcher</div>
+  </div>
+
+  <p class="hint">Preview only — a static mockup of how the "deploy finished" screen could look.
+     Nothing in your watcher is wired to this yet. Toggle Success / Failure above.</p>
+
+<script>
+  const okJobs = [
+    { name: "deploy", ok: true },
+  ];
+  const failJobs = [
+    { name: "e2e / smoke tests",  ok: true  },
+    { name: "e2e / checkout flow", ok: false },
+  ];
+  function render(jobs) {
+    document.getElementById('job-list').innerHTML = jobs.map(j =>
+      `<div class="job ${j.ok ? 'ok' : 'bad'}"><span class="dot">${j.ok ? '✅' : '❌'}</span><span class="name">${j.name}</span></div>`
+    ).join('');
+  }
+  function setState(s) {
+    const card = document.getElementById('card');
+    const ok = s === 'ok';
+    card.classList.toggle('fail', !ok);
+    document.getElementById('icon').textContent = ok ? '✓' : '✕';
+    document.getElementById('headline').textContent = ok ? 'Deploy finished' : '1 job failed';
+    document.getElementById('btn-ok').classList.toggle('active', ok);
+    document.getElementById('btn-fail').classList.toggle('active', !ok);
+    document.getElementById('jobs-title').textContent = ok ? 'Deploy job' : 'E2E jobs';
+    render(ok ? okJobs : failJobs);
+  }
+  setState('ok');
+</script>
+</body>
+</html>
